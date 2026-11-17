@@ -75,6 +75,36 @@ public class CollisionAnalyzer {
         }
     }
 
+
+    public ComparisonResult compareInputs(int keyCount) {
+
+        AnalysisResult normalResult =
+                analyzeNormalInput(keyCount);
+
+        AnalysisResult collisionResult =
+                analyzeCollisionInput(keyCount);
+
+        long traversalDifference =
+                collisionResult.traversalCount()
+                        - normalResult.traversalCount();
+
+        Double traversalRatio = null;
+
+        if (normalResult.traversalCount() > 0) {
+            traversalRatio =
+                    (double) collisionResult.traversalCount()
+                            / normalResult.traversalCount();
+        }
+
+        return new ComparisonResult(
+                normalResult,
+                collisionResult,
+                traversalDifference,
+                traversalRatio
+        );
+    }
+
+
     public enum InputType {
         NORMAL,
         COLLISION
@@ -85,4 +115,13 @@ public class CollisionAnalyzer {
             int keyCount,
             long traversalCount
     ) {}
+
+
+    public record ComparisonResult(
+            AnalysisResult normalResult,
+            AnalysisResult collisionResult,
+            long traversalDifference,
+            Double traversalRatio
+    ) {}
+
 }
