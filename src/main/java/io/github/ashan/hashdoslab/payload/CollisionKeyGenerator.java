@@ -1,8 +1,11 @@
 package io.github.ashan.hashdoslab.payload;
 
+import org.springframework.stereotype.Component;
+
 import java.util.ArrayList;
 import java.util.List;
 
+@Component
 public class CollisionKeyGenerator {
 
     public List<String> generateCollisionKeys(int count) {

@@ -3,10 +3,12 @@ package io.github.ashan.hashdoslab.analysis;
 
 import io.github.ashan.hashdoslab.engine.VulnerableHashTable;
 import io.github.ashan.hashdoslab.payload.CollisionKeyGenerator;
+import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
 
+@Component
 public class CollisionAnalyzer {
 
     private static final int TABLE_CAPACITY = 16;
