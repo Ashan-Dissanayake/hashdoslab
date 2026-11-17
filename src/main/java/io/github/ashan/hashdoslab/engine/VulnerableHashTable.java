@@ -18,6 +18,7 @@ public class VulnerableHashTable {
 
     private final Node[] buckets;
     private int size;
+    private long traversalCount;
 
     public VulnerableHashTable(int capacity) {
 
@@ -56,15 +57,16 @@ public class VulnerableHashTable {
         // Traverse the linked list.
         Node current = buckets[index];
 
+
         while (true) {
 
-            // Update existing key.
+            traversalCount++;
+
             if (current.key.equals(key)) {
                 current.value = value;
                 return;
             }
 
-            // Append new node at the end.
             if (current.next == null) {
                 current.next = newNode;
                 size++;
@@ -73,6 +75,7 @@ public class VulnerableHashTable {
 
             current = current.next;
         }
+
     }
 
     /**
@@ -96,6 +99,13 @@ public class VulnerableHashTable {
         }
 
         return null;
+    }
+
+    /**
+     * Returns the number of traversals performed during hash table operations.
+     */
+    public long getTraversalCount() {
+        return traversalCount;
     }
 
     /**
