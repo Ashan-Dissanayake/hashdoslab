@@ -94,4 +94,132 @@ class AnalysisControllerTest {
 
         verifyNoInteractions(analysisService);
     }
+
+
+    @Test
+    void shouldReturnProblemDetailForValidationError() throws Exception {
+
+        mockMvc.perform(post("/api/v1/analysis/compare")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                                "keyCount": 0
+                            }
+                            """))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(
+                        MediaType.APPLICATION_PROBLEM_JSON
+                ))
+                .andExpect(jsonPath("$.type").value(
+                        "https://hashdoslab.dev/problems/validation-error"
+                ))
+                .andExpect(jsonPath("$.title").value("Validation Failed"))
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.detail").value(
+                        "Key count must be at least 1"
+                ));
+
+        verifyNoInteractions(analysisService);
+    }
+
+    @Test
+    void shouldReturnProblemDetailForMaximumValidationError() throws Exception {
+
+        mockMvc.perform(post("/api/v1/analysis/compare")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                                "keyCount": 10001
+                            }
+                            """))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(
+                        MediaType.APPLICATION_PROBLEM_JSON
+                ))
+                .andExpect(jsonPath("$.title").value("Validation Failed"))
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.detail").value(
+                        "Key count cannot exceed 10000"
+                ));
+
+        verifyNoInteractions(analysisService);
+    }
+
+
+    @Test
+    void shouldReturnProblemDetailForIllegalArgumentException() throws Exception {
+
+        // Arrange
+        when(analysisService.compare(100))
+                .thenThrow(new IllegalArgumentException(
+                        "Invalid analysis input"
+                ));
+
+        // Act & Assert
+        mockMvc.perform(post("/api/v1/analysis/compare")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                                "keyCount": 100
+                            }
+                            """))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(
+                        MediaType.APPLICATION_PROBLEM_JSON
+                ))
+                .andExpect(jsonPath("$.type").value(
+                        "https://hashdoslab.dev/problems/bad-request"
+                ))
+                .andExpect(jsonPath("$.title").value("Bad Request"))
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.detail").value(
+                        "Invalid analysis input"
+                ));
+
+        verify(analysisService, times(1)).compare(100);
+    }
+
+    @Test
+    void shouldReturnProblemDetailForUnexpectedException() throws Exception {
+
+        // Arrange
+        when(analysisService.compare(100))
+                .thenThrow(new RuntimeException(
+                        "Sensitive internal error details"
+                ));
+
+        // Act & Assert
+        mockMvc.perform(post("/api/v1/analysis/compare")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                                "keyCount": 100
+                            }
+                            """))
+                .andExpect(status().isInternalServerError())
+                .andExpect(content().contentTypeCompatibleWith(
+                        MediaType.APPLICATION_PROBLEM_JSON
+                ))
+                .andExpect(jsonPath("$.type").value(
+                        "https://hashdoslab.dev/problems/internal-error"
+                ))
+                .andExpect(jsonPath("$.title").value(
+                        "Internal Server Error"
+                ))
+                .andExpect(jsonPath("$.status").value(500))
+                .andExpect(jsonPath("$.detail").value(
+                        "An unexpected error occurred."
+                ))
+                .andExpect(jsonPath("$.detail").value(
+                        org.hamcrest.Matchers.not(
+                                org.hamcrest.Matchers.containsString(
+                                        "Sensitive internal error details"
+                                )
+                        )
+                ));
+
+        verify(analysisService, times(1)).compare(100);
+    }
+
+
 }
