@@ -3,6 +3,7 @@ package io.github.ashan.hashdoslab.api.controller;
 
 import io.github.ashan.hashdoslab.api.dto.request.AnalysisRequest;
 import io.github.ashan.hashdoslab.api.dto.response.AnalysisResponse;
+import io.github.ashan.hashdoslab.api.dto.response.ThreeEngineComparisonResponse;
 import io.github.ashan.hashdoslab.service.AnalysisService;
 
 import jakarta.validation.Valid;
@@ -25,6 +26,16 @@ public class AnalysisController {
 
         AnalysisResponse response =
                 analysisService.compare(request.keyCount());
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/compare-engines")
+    public ResponseEntity<ThreeEngineComparisonResponse> compareEngines(
+            @Valid @RequestBody AnalysisRequest request) {
+
+        ThreeEngineComparisonResponse response =
+                analysisService.compareEngines(request.keyCount());
 
         return ResponseEntity.ok(response);
     }
