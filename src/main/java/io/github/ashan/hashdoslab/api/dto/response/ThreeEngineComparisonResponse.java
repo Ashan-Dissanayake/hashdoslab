@@ -4,9 +4,17 @@ public record ThreeEngineComparisonResponse(
 
         int keyCount,
 
-        long vulnerableInsertionTimeNanos,
-        long javaHashMapInsertionTimeNanos,
-        long hardenedInsertionTimeNanos,
+        int warmupIterations,
+        int measurementIterations,
+
+        long vulnerableAverageInsertionTimeNanos,
+        long vulnerableMedianInsertionTimeNanos,
+
+        long javaHashMapAverageInsertionTimeNanos,
+        long javaHashMapMedianInsertionTimeNanos,
+
+        long hardenedAverageInsertionTimeNanos,
+        long hardenedMedianInsertionTimeNanos,
 
         long vulnerableTraversalCount,
 

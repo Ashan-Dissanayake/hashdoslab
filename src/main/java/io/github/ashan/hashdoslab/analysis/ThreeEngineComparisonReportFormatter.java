@@ -1,3 +1,4 @@
+
 package io.github.ashan.hashdoslab.analysis;
 
 import org.springframework.stereotype.Component;
@@ -19,15 +20,28 @@ public class ThreeEngineComparisonReportFormatter {
 
                 Collision Keys: %d
 
+                BENCHMARK CONFIGURATION
+                ------------------------------------------
+                Warm-up Iterations     : %d
+                Measurement Iterations : %d
+
                 INSERTION TIME
                 ------------------------------------------
-                Vulnerable HashTable : %,d ns
-                Java HashMap         : %,d ns
-                Hardened HashTable   : %,d ns
+                Vulnerable HashTable
+                  Average : %,d ns
+                  Median  : %,d ns
+
+                Java HashMap
+                  Average : %,d ns
+                  Median  : %,d ns
+
+                Hardened HashTable
+                  Average : %,d ns
+                  Median  : %,d ns
 
                 VULNERABLE ENGINE ANALYSIS
                 ------------------------------------------
-                Traversal Count     : %,d
+                Traversal Count : %,d
 
                 ENTRY COUNT VERIFICATION
                 ------------------------------------------
@@ -40,9 +54,17 @@ public class ThreeEngineComparisonReportFormatter {
 
                 result.keyCount(),
 
-                result.vulnerableInsertionTimeNanos(),
-                result.javaHashMapInsertionTimeNanos(),
-                result.hardenedInsertionTimeNanos(),
+                result.warmupIterations(),
+                result.measurementIterations(),
+
+                result.vulnerableAverageInsertionTimeNanos(),
+                result.vulnerableMedianInsertionTimeNanos(),
+
+                result.javaHashMapAverageInsertionTimeNanos(),
+                result.javaHashMapMedianInsertionTimeNanos(),
+
+                result.hardenedAverageInsertionTimeNanos(),
+                result.hardenedMedianInsertionTimeNanos(),
 
                 result.vulnerableTraversalCount(),
 
