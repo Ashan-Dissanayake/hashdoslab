@@ -4,9 +4,11 @@ import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.net.URI;
 import java.util.stream.Collectors;
@@ -89,5 +91,39 @@ public class GlobalExceptionHandler {
         ));
 
         return problemDetail;
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ProblemDetail handleMethodNotSupported(
+            HttpRequestMethodNotSupportedException exception
+    ) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.METHOD_NOT_ALLOWED,
+                "The requested HTTP method is not supported for this endpoint."
+        );
+
+        problem.setTitle("Method Not Allowed");
+        problem.setType(URI.create(
+                "https://hashdoslab.dev/problems/method-not-allowed"
+        ));
+
+        return problem;
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ProblemDetail handleNotFound(
+            NoResourceFoundException exception
+    ) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.NOT_FOUND,
+                "The requested resource was not found."
+        );
+
+        problem.setTitle("Not Found");
+        problem.setType(URI.create(
+                "https://hashdoslab.dev/problems/not-found"
+        ));
+
+        return problem;
     }
 }
