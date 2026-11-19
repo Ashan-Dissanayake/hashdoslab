@@ -3,6 +3,7 @@ package io.github.ashan.hashdoslab.protection.ratelimit;
 
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
+import io.github.bucket4j.ConsumptionProbe;
 import io.github.bucket4j.Refill;
 
 import jakarta.servlet.FilterChain;
@@ -47,32 +48,34 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
         String clientIp = request.getRemoteAddr();
 
-        System.out.println("RATE LIMIT FILTER EXECUTED");
-        System.out.println("Request URI: " + request.getRequestURI());
-        System.out.println("Servlet Path: " + request.getServletPath());
-        System.out.println("Client IP: " + clientIp);
 
         Bucket bucket = buckets.computeIfAbsent(
                 clientIp,
                 ignored -> createBucket()
         );
 
-        System.out.println("Tracked clients: " + buckets.size());
 
         if (buckets.size() > MAX_TRACKED_CLIENTS) {
             buckets.remove(clientIp, bucket);
-            writeRateLimitResponse(response);
+            writeCapacityExceededResponse(response);
             return;
         }
 
-        if (bucket.tryConsume(1)) {
-            System.out.println("TOKEN CONSUMED");
+        ConsumptionProbe probe = bucket.tryConsumeAndReturnRemaining(1);
+
+        if (probe.isConsumed()) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        System.out.println("RATE LIMIT EXCEEDED");
-        writeRateLimitResponse(response);
+        long waitNanos = probe.getNanosToWaitForRefill();
+
+        long retryAfterSeconds = Math.max(
+                1,
+                (waitNanos + 999_999_999L) / 1_000_000_000L
+        );
+
+        writeRateLimitResponse(response, retryAfterSeconds);
     }
 
     private Bucket createBucket() {
@@ -93,14 +96,18 @@ public class RateLimitFilter extends OncePerRequestFilter {
     }
 
     private void writeRateLimitResponse(
-            HttpServletResponse response
+            HttpServletResponse response,
+            long retryAfterSeconds
     ) throws IOException {
 
         response.setStatus(429);
         response.setContentType("application/problem+json");
         response.setCharacterEncoding("UTF-8");
 
-        response.setHeader("Retry-After", "60");
+        response.setHeader(
+                "Retry-After",
+                String.valueOf(retryAfterSeconds)
+        );
 
         response.getWriter().write("""
                 {
@@ -110,5 +117,23 @@ public class RateLimitFilter extends OncePerRequestFilter {
                     "detail": "Request rate limit exceeded. Please try again later."
                 }
                 """);
+    }
+
+    private void writeCapacityExceededResponse(
+            HttpServletResponse response
+    ) throws IOException {
+
+        response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+        response.setContentType("application/problem+json");
+        response.setCharacterEncoding("UTF-8");
+
+        response.getWriter().write("""
+            {
+                "type": "https://hashdoslab.dev/problems/rate-limiter-capacity-exceeded",
+                "title": "Service Unavailable",
+                "status": 503,
+                "detail": "Rate limiter capacity has been reached. Please try again later."
+            }
+            """);
     }
 }
