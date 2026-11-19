@@ -14,7 +14,7 @@ import java.util.Objects;
  *
  * Do not use in production applications.
  */
-public class VulnerableHashTable {
+public class VulnerableHashTable implements HashTable {
 
     private final Node[] buckets;
     private int size;
@@ -38,6 +38,7 @@ public class VulnerableHashTable {
      * If the key already exists, its value is updated.
      * Otherwise, a new node is appended to the bucket's linked list.
      */
+    @Override
     public void put(String key, String value) {
 
         Objects.requireNonNull(key, "Key cannot be null");
@@ -81,6 +82,8 @@ public class VulnerableHashTable {
     /**
      * Retrieves the value associated with a key.
      */
+    @Override
+
     public String get(String key) {
 
         Objects.requireNonNull(key, "Key cannot be null");
@@ -111,6 +114,8 @@ public class VulnerableHashTable {
     /**
      * Returns the number of stored key-value pairs.
      */
+    @Override
+
     public int size() {
         return size;
     }
