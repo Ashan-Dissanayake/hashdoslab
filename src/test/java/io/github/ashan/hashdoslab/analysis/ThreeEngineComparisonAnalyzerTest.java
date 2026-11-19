@@ -1,3 +1,4 @@
+
 package io.github.ashan.hashdoslab.analysis;
 
 import io.github.ashan.hashdoslab.payload.CollisionKeyGenerator;
@@ -27,15 +28,29 @@ class ThreeEngineComparisonAnalyzerTest {
 
         assertEquals(keyCount, result.keyCount());
 
-        assertEquals(100, result.vulnerableEntryCount());
-        assertEquals(100, result.javaHashMapEntryCount());
-        assertEquals(100, result.hardenedEntryCount());
+        // Benchmark configuration
+        assertEquals(5, result.warmupIterations());
+        assertEquals(15, result.measurementIterations());
 
+        // Entry count verification
+        assertEquals(keyCount, result.vulnerableEntryCount());
+        assertEquals(keyCount, result.javaHashMapEntryCount());
+        assertEquals(keyCount, result.hardenedEntryCount());
+
+        // Vulnerable traversal count
         assertEquals(4950, result.vulnerableTraversalCount());
 
-        assertTrue(result.vulnerableInsertionTimeNanos() >= 0);
-        assertTrue(result.javaHashMapInsertionTimeNanos() >= 0);
-        assertTrue(result.hardenedInsertionTimeNanos() >= 0);
+        // Vulnerable timing
+        assertTrue(result.vulnerableAverageInsertionTimeNanos() >= 0);
+        assertTrue(result.vulnerableMedianInsertionTimeNanos() >= 0);
+
+        // Java HashMap timing
+        assertTrue(result.javaHashMapAverageInsertionTimeNanos() >= 0);
+        assertTrue(result.javaHashMapMedianInsertionTimeNanos() >= 0);
+
+        // Hardened timing
+        assertTrue(result.hardenedAverageInsertionTimeNanos() >= 0);
+        assertTrue(result.hardenedMedianInsertionTimeNanos() >= 0);
     }
 
     @Test

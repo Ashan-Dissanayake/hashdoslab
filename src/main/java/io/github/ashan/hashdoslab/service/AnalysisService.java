@@ -38,6 +38,7 @@ public class AnalysisService {
         );
     }
 
+
     public ThreeEngineComparisonResponse compareEngines(int keyCount) {
 
         var result = threeEngineComparisonAnalyzer.compare(keyCount);
@@ -45,9 +46,17 @@ public class AnalysisService {
         return new ThreeEngineComparisonResponse(
                 result.keyCount(),
 
-                result.vulnerableInsertionTimeNanos(),
-                result.javaHashMapInsertionTimeNanos(),
-                result.hardenedInsertionTimeNanos(),
+                result.warmupIterations(),
+                result.measurementIterations(),
+
+                result.vulnerableAverageInsertionTimeNanos(),
+                result.vulnerableMedianInsertionTimeNanos(),
+
+                result.javaHashMapAverageInsertionTimeNanos(),
+                result.javaHashMapMedianInsertionTimeNanos(),
+
+                result.hardenedAverageInsertionTimeNanos(),
+                result.hardenedMedianInsertionTimeNanos(),
 
                 result.vulnerableTraversalCount(),
 
@@ -56,4 +65,5 @@ public class AnalysisService {
                 result.hardenedEntryCount()
         );
     }
+
 }
