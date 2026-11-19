@@ -1,6 +1,8 @@
 
 package io.github.ashan.hashdoslab.protection.ratelimit;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.ConsumptionProbe;
@@ -15,7 +17,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.concurrent.ConcurrentHashMap;
+import java.time.Duration;
 
 @Component
 public class RateLimitFilter extends OncePerRequestFilter {
@@ -25,8 +27,13 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     private static final int MAX_TRACKED_CLIENTS = 10_000;
 
-    private final ConcurrentHashMap<String, Bucket> buckets =
-            new ConcurrentHashMap<>();
+    private static final Duration CLIENT_IDLE_TIMEOUT =
+            Duration.ofMinutes(10);
+
+    private final Cache<String, Bucket> buckets = Caffeine.newBuilder()
+            .maximumSize(MAX_TRACKED_CLIENTS)
+            .expireAfterAccess(CLIENT_IDLE_TIMEOUT)
+            .build();
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
@@ -38,7 +45,6 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 || !"POST".equalsIgnoreCase(request.getMethod());
     }
 
-
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
@@ -48,20 +54,13 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
         String clientIp = request.getRemoteAddr();
 
-
-        Bucket bucket = buckets.computeIfAbsent(
+        Bucket bucket = buckets.get(
                 clientIp,
                 ignored -> createBucket()
         );
 
-
-        if (buckets.size() > MAX_TRACKED_CLIENTS) {
-            buckets.remove(clientIp, bucket);
-            writeCapacityExceededResponse(response);
-            return;
-        }
-
-        ConsumptionProbe probe = bucket.tryConsumeAndReturnRemaining(1);
+        ConsumptionProbe probe =
+                bucket.tryConsumeAndReturnRemaining(1);
 
         if (probe.isConsumed()) {
             filterChain.doFilter(request, response);
@@ -84,7 +83,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 RateLimitPolicy.CAPACITY,
                 Refill.greedy(
                         RateLimitPolicy.REFILL_TOKENS,
-                        java.time.Duration.ofSeconds(
+                        Duration.ofSeconds(
                                 RateLimitPolicy.REFILL_PERIOD_SECONDS
                         )
                 )
@@ -117,23 +116,5 @@ public class RateLimitFilter extends OncePerRequestFilter {
                     "detail": "Request rate limit exceeded. Please try again later."
                 }
                 """);
-    }
-
-    private void writeCapacityExceededResponse(
-            HttpServletResponse response
-    ) throws IOException {
-
-        response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
-        response.setContentType("application/problem+json");
-        response.setCharacterEncoding("UTF-8");
-
-        response.getWriter().write("""
-            {
-                "type": "https://hashdoslab.dev/problems/rate-limiter-capacity-exceeded",
-                "title": "Service Unavailable",
-                "status": 503,
-                "detail": "Rate limiter capacity has been reached. Please try again later."
-            }
-            """);
     }
 }
