@@ -1,8 +1,11 @@
 
 package io.github.ashan.hashdoslab.protection.ratelimit;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
+import io.github.bucket4j.ConsumptionProbe;
 import io.github.bucket4j.Refill;
 
 import jakarta.servlet.FilterChain;
@@ -14,7 +17,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.concurrent.ConcurrentHashMap;
+import java.time.Duration;
 
 @Component
 public class RateLimitFilter extends OncePerRequestFilter {
@@ -24,8 +27,13 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     private static final int MAX_TRACKED_CLIENTS = 10_000;
 
-    private final ConcurrentHashMap<String, Bucket> buckets =
-            new ConcurrentHashMap<>();
+    private static final Duration CLIENT_IDLE_TIMEOUT =
+            Duration.ofMinutes(10);
+
+    private final Cache<String, Bucket> buckets = Caffeine.newBuilder()
+            .maximumSize(MAX_TRACKED_CLIENTS)
+            .expireAfterAccess(CLIENT_IDLE_TIMEOUT)
+            .build();
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
@@ -37,7 +45,6 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 || !"POST".equalsIgnoreCase(request.getMethod());
     }
 
-
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
@@ -47,32 +54,27 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
         String clientIp = request.getRemoteAddr();
 
-        System.out.println("RATE LIMIT FILTER EXECUTED");
-        System.out.println("Request URI: " + request.getRequestURI());
-        System.out.println("Servlet Path: " + request.getServletPath());
-        System.out.println("Client IP: " + clientIp);
-
-        Bucket bucket = buckets.computeIfAbsent(
+        Bucket bucket = buckets.get(
                 clientIp,
                 ignored -> createBucket()
         );
 
-        System.out.println("Tracked clients: " + buckets.size());
+        ConsumptionProbe probe =
+                bucket.tryConsumeAndReturnRemaining(1);
 
-        if (buckets.size() > MAX_TRACKED_CLIENTS) {
-            buckets.remove(clientIp, bucket);
-            writeRateLimitResponse(response);
-            return;
-        }
-
-        if (bucket.tryConsume(1)) {
-            System.out.println("TOKEN CONSUMED");
+        if (probe.isConsumed()) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        System.out.println("RATE LIMIT EXCEEDED");
-        writeRateLimitResponse(response);
+        long waitNanos = probe.getNanosToWaitForRefill();
+
+        long retryAfterSeconds = Math.max(
+                1,
+                (waitNanos + 999_999_999L) / 1_000_000_000L
+        );
+
+        writeRateLimitResponse(response, retryAfterSeconds);
     }
 
     private Bucket createBucket() {
@@ -81,7 +83,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 RateLimitPolicy.CAPACITY,
                 Refill.greedy(
                         RateLimitPolicy.REFILL_TOKENS,
-                        java.time.Duration.ofSeconds(
+                        Duration.ofSeconds(
                                 RateLimitPolicy.REFILL_PERIOD_SECONDS
                         )
                 )
@@ -93,14 +95,18 @@ public class RateLimitFilter extends OncePerRequestFilter {
     }
 
     private void writeRateLimitResponse(
-            HttpServletResponse response
+            HttpServletResponse response,
+            long retryAfterSeconds
     ) throws IOException {
 
         response.setStatus(429);
         response.setContentType("application/problem+json");
         response.setCharacterEncoding("UTF-8");
 
-        response.setHeader("Retry-After", "60");
+        response.setHeader(
+                "Retry-After",
+                String.valueOf(retryAfterSeconds)
+        );
 
         response.getWriter().write("""
                 {
