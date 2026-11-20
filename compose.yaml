@@ -1,0 +1,10 @@
+
+services:
+  hashdoslab:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: hashdoslab:1.0
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
