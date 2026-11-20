@@ -229,6 +229,7 @@ This endpoint measures insertion performance across:
 
 The engine comparison endpoint is protected by the configured rate limiter and request body size filter.
 
+
 ## Getting Started
 
 ### Prerequisites
@@ -264,6 +265,51 @@ On Linux or macOS:
 The application starts on:
 
 `http://localhost:8080`
+
+### Run with Docker
+
+#### Prerequisites
+
+Make sure Docker and Docker Compose are installed.
+
+#### Build and Start the Application
+
+Build the Docker image and start the application container:
+
+```bash
+docker compose up --build -d
+```
+
+The application will be available at:
+
+`http://localhost:8080`
+
+#### Check Container Status
+
+```bash
+docker compose ps
+```
+
+#### View Application Logs
+
+```bash
+docker compose logs -f
+```
+
+#### Stop the Application
+
+```bash
+docker compose down
+```
+
+### Docker Configuration
+
+The project includes the following Docker configuration files:
+
+- `Dockerfile` - Uses a multi-stage build with Maven and Eclipse Temurin JRE 17 to create the application image.
+- `.dockerignore` - Excludes unnecessary files from the Docker build context.
+- `compose.yaml` - Defines the application container, image build configuration, port mapping, and restart policy.
+
 
 ### Test the API
 
